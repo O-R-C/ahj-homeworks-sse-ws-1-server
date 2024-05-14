@@ -24,8 +24,8 @@ export class Chat {
    * Push new message to chat
    * @param {string} payload - message to push
    */
-  push(payload) {
-    this.#chat.push(payload)
+  push(message) {
+    this.#chat.push(message)
   }
 
   /**
