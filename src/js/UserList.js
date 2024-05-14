@@ -3,7 +3,7 @@
  *
  * @class UserList
  */
-export class UserList {
+class UserList {
   /**
    * Set of user names
    *

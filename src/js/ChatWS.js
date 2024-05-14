@@ -3,7 +3,7 @@
  *
  * @class ChatWS
  */
-export class ChatWS {
+class ChatWS {
   /**
    * WebSocket client
    * @private
@@ -43,8 +43,6 @@ export class ChatWS {
     this.#userList = userList
     this.#wss = wsServer
     this.#chat = chat
-
-    this.#init()
   }
 
   /**
@@ -58,9 +56,9 @@ export class ChatWS {
 
   /**
    * Initializes the WebSocket connection
-   * @private
+   * @public
    */
-  #init() {
+  init() {
     this.#connect()
   }
 

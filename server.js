@@ -7,6 +7,9 @@ const { koaBody } = require('koa-body')
 const router = require('./routes')
 const Koa = require('koa')
 const WS = require('ws')
+const UserList = require('./src/js/UserList')
+const Chat = require('./src/js/Chat')
+const ChatWS = require('./src/js/ChatWS')
 
 const app = new Koa()
 const server = HTTP.createServer(app)
@@ -24,43 +27,8 @@ app.use(koaBody({ json: true, text: true, urlencoded: true, multipart: true }))
 app.use(router())
 
 const wss = new WS.Server({ server, path: '/chat' })
-const users = new Set()
-const chat = ['Welcome']
-
-wss.on('connection', (ws) => {
-  wss.clients.forEach((client) => {
-    console.log('🚀 ~ client.readyState:', client.readyState)
-  })
-
-  ws.on('message', (data) => {
-    const { event, payload } = JSON.parse(data)
-
-    eventHandlers[event] && eventHandlers[event](payload, ws)
-    console.log('🚀 ~ ws:', ws)
-  })
-
-  ws.send(JSON.stringify({ event: 'UsersList', payload: [...users.keys()] }))
-  ws.send(JSON.stringify({ event: 'Chat', payload: chat }))
-})
-
-const eventHandlers = {
-  UserJoin: (payload) => {
-    users.add(payload)
-  },
-  UserLeave: (payload) => {
-    users.delete(payload)
-  },
-  Chat: (payload, wsClient) => {
-    chat.push(payload)
-
-    wss.clients.forEach((client) => {
-      if (client !== wsClient && client.readyState === WS.OPEN) {
-        console.log('🚀 ~ client.readyState:', client.readyState)
-        client.send(payload)
-      }
-    })
-  },
-}
+const chatWS = new ChatWS(wss, new UserList(), new Chat())
+chatWS.init()
 
 app.on('error', (err) => {
   console.error(err)

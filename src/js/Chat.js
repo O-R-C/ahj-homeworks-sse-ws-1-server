@@ -3,7 +3,7 @@
  *
  * @class Chat
  */
-export class Chat {
+class Chat {
   /**
    * Internal chat array
    *
