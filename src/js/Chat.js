@@ -16,7 +16,7 @@ export class Chat {
    * Constructor
    * @param {string[]} [chat=[]] - initial chat messages
    */
-  constructor(chat = []) {
+  constructor(chat = ['Welcome']) {
     this.#chat = chat
   }
 

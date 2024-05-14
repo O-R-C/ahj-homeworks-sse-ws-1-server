@@ -28,6 +28,10 @@ const users = new Set()
 const chat = ['Welcome']
 
 wss.on('connection', (ws) => {
+  wss.clients.forEach((client) => {
+    console.log('🚀 ~ client.readyState:', client.readyState)
+  })
+
   ws.on('message', (data) => {
     const { event, payload } = JSON.parse(data)
 
@@ -51,6 +55,7 @@ const eventHandlers = {
 
     wss.clients.forEach((client) => {
       if (client !== wsClient && client.readyState === WS.OPEN) {
+        console.log('🚀 ~ client.readyState:', client.readyState)
         client.send(payload)
       }
     })
