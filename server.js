@@ -8,8 +8,8 @@ const router = require('./routes')
 const Koa = require('koa')
 const WS = require('ws')
 const UserList = require('./src/js/UserList')
-const Chat = require('./src/js/Chat')
 const ChatWS = require('./src/js/ChatWS')
+const ArrayStorage = require('./src/js/ArrayStorage')
 
 const app = new Koa()
 const server = HTTP.createServer(app)
@@ -27,7 +27,7 @@ app.use(koaBody({ json: true, text: true, urlencoded: true, multipart: true }))
 app.use(router())
 
 const wss = new WS.Server({ server, path: '/chat' })
-const chatWS = new ChatWS(wss, new UserList(), new Chat())
+const chatWS = new ChatWS(wss, UserList, ArrayStorage)
 chatWS.init()
 
 app.on('error', (err) => {

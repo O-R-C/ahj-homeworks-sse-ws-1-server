@@ -1,3 +1,5 @@
+const { v4: uuidv4 } = require('uuid')
+
 /**
  * Class represents a WebSockets chat
  *
@@ -29,20 +31,27 @@ class ChatWS {
   #userList
 
   /**
+   * List of connected clients
+   * @private
+   */
+  #clients
+
+  /**
    * Constructs an instance of ChatWS
    * @param {WS.Server} wsServer - WebSocket server
-   * @param {UserList} userList - List of user names
-   * @param {Chat} chat - Chat messages
+   * @param {UserList} UserList - List of user names
+   * @param {ArrayStorage} ArrayStorage - Chat messages
    * @throws {Error} If any of the arguments are missing
    */
-  constructor(wsServer, userList, chat) {
+  constructor(wsServer, UserList, ArrayStorage) {
     !wsServer && this.#throwError('wsServer is required')
-    !userList && this.#throwError('userList is required')
-    !chat && this.#throwError('chat is required')
+    !UserList && this.#throwError('userList is required')
+    !ArrayStorage && this.#throwError('arrayStorage is required')
 
-    this.#userList = userList
+    this.#userList = new UserList()
     this.#wss = wsServer
-    this.#chat = chat
+    this.#chat = new ArrayStorage(['Welcome'])
+    this.#clients = {}
   }
 
   /**
@@ -68,13 +77,18 @@ class ChatWS {
    */
   #connect() {
     this.#wss.on('connection', (ws) => {
-      this.#ws = ws
-      this.#send('UsersList', this.#userList.users)
-      this.#send('Chat', this.#chat.get())
+      ws.send(this.#getStringData('UsersList', this.#userList.users))
+      ws.send(this.#getStringData('Chat', this.#chat.get()))
+
+      const id = uuidv4()
+
+      this.#clients[id] = { ws, id }
 
       ws.on('message', (data) => {
-        this.#handleData(data)
+        this.#handleData(data, id)
       })
+
+      ws.on('close', () => this.#handleCloseConnection(this.#clients[id]))
     })
   }
 
@@ -84,8 +98,20 @@ class ChatWS {
    * @param {string} event - Event name
    * @param {*} payload - Payload data
    */
-  #send(event, payload) {
-    this.#ws.send(JSON.stringify({ event, payload }))
+  #getStringData(event, payload) {
+    return JSON.stringify({ event, payload })
+  }
+
+  /**
+   * Sends data to all clients
+   * @private
+   * @param {string} event - Event name
+   * @param {*} payload - Payload data
+   */
+  #sendAll(event, payload) {
+    this.#wss.clients.forEach((client) => {
+      client.send(this.#getStringData(event, payload))
+    })
   }
 
   /**
@@ -93,9 +119,9 @@ class ChatWS {
    * @private
    * @param {string} data - Incoming data
    */
-  #handleData(data) {
+  #handleData(data, id) {
     const { event, payload } = JSON.parse(data)
-    this.#eventHandlers[event] && this.#eventHandlers[event](payload)
+    this.#eventHandlers[event] && this.#eventHandlers[event](payload, id)
     !this.#eventHandlers[event] && console.error(`Event ${event} not found`)
   }
 
@@ -104,9 +130,9 @@ class ChatWS {
    * @private
    */
   #eventHandlers = {
-    UserJoin: (userName) => this.#userJoin(userName),
-    UserLeave: (userName) => this.#userLeave(userName),
-    Chat: (message) => this.#handleChat(message),
+    UserJoin: (payload, id) => this.#userJoin(payload, id),
+    UserLeave: (payload, id) => this.#userLeave(payload, id),
+    Chat: (payload, id) => this.#handleChat(payload, id),
   }
 
   /**
@@ -114,8 +140,11 @@ class ChatWS {
    * @private
    * @param {string} userName - User name
    */
-  #userJoin(userName) {
+  #userJoin(userName, id) {
+    this.#clients[id].userName = userName
+    console.log('🚀 ~ this.#clients[id]:', this.#clients[id]['userName'])
     this.#userList.add(userName)
+    this.#sendAll('UsersList', this.#userList.users)
   }
 
   /**
@@ -136,9 +165,15 @@ class ChatWS {
     this.#chat.push(message)
     this.#wss.clients.forEach((client) => {
       if (client !== this.#ws && client.readyState === 1) {
-        this.#send('Chat', message)
+        client.send(this.#getStringData('Chat', message))
       }
     })
+  }
+
+  #handleCloseConnection({ id, userName }) {
+    delete this.#clients[id]
+    this.#userLeave(userName)
+    this.#sendAll('UsersList', this.#userList.users)
   }
 }
 
