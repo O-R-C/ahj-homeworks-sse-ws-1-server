@@ -43,4 +43,4 @@ app.on('exit', () => {
   wss.close()
 })
 
-server.listen(3000)
+server.listen(10000)
