@@ -7,12 +7,6 @@ const { v4: uuidv4 } = require('uuid')
  */
 class ChatWS {
   /**
-   * WebSocket client
-   * @private
-   */
-  #ws
-
-  /**
    * WebSocket server instance
    * @private
    */
@@ -50,7 +44,7 @@ class ChatWS {
 
     this.#userList = new UserList()
     this.#wss = wsServer
-    this.#chat = new ArrayStorage(['Welcome'])
+    this.#chat = new ArrayStorage([{ username: 'Admin', timestamp: Date.now(), text: 'Welcome' }])
     this.#clients = {}
   }
 
@@ -139,10 +133,10 @@ class ChatWS {
    * Adds a user to the list
    * @private
    * @param {string} userName - User name
+   * @param {string} id - Client ID
    */
   #userJoin(userName, id) {
     this.#clients[id].userName = userName
-    console.log('🚀 ~ this.#clients[id]:', this.#clients[id]['userName'])
     this.#userList.add(userName)
     this.#sendAll('UsersList', this.#userList.users)
   }
@@ -151,8 +145,10 @@ class ChatWS {
    * Removes a user from the list
    * @private
    * @param {string} userName - User name
+   * @param {string} id - Client ID
    */
-  #userLeave(userName) {
+  #userLeave(userName, id) {
+    id && delete this.#clients[id]?.userName
     this.#userList.delete(userName)
   }
 
@@ -160,16 +156,22 @@ class ChatWS {
    * Handles a new chat message
    * @private
    * @param {string} message - New chat message
+   *
    */
-  #handleChat(message) {
+  #handleChat(message, id) {
     this.#chat.push(message)
     this.#wss.clients.forEach((client) => {
-      if (client !== this.#ws && client.readyState === 1) {
-        client.send(this.#getStringData('Chat', message))
+      if (client !== this.#clients[id].ws && client.readyState === 1) {
+        client.send(this.#getStringData('Message', message))
       }
     })
   }
 
+  /**
+   * Closes the connection
+   * @param {string} id - Client ID
+   * @param {string} userName - User name
+   */
   #handleCloseConnection({ id, userName }) {
     delete this.#clients[id]
     this.#userLeave(userName)

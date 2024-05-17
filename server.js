@@ -35,6 +35,7 @@ app.on('error', (err) => {
 })
 
 app.on('close', () => {
+  console.log('App is closed')
   wss.close()
 })
 
