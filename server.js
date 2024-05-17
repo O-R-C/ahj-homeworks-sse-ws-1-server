@@ -43,4 +43,4 @@ app.on('exit', () => {
   wss.close()
 })
 
-server.listen(10000)
+server.listen(process.env.PORT || 10000)
