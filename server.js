@@ -12,7 +12,7 @@ const ChatWS = require('./src/js/ChatWS')
 const ArrayStorage = require('./src/js/ArrayStorage')
 
 const app = new Koa()
-const server = HTTP.createServer(app)
+const server = HTTP.createServer(app.callback())
 
 app.use(
   cors({
